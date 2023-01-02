@@ -24,16 +24,7 @@ const userschema = new mongoose.Schema({
     role:{
         type:String
     },
-    
-    projects:[{
-        type:ObjectId,
-        ref:"Project"
-
-    }
-        
-        
-
-    ]
+   
 })
 
 

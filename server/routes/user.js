@@ -8,14 +8,14 @@ const storage = multer.diskStorage({
     },
     filename:(req,file,cb)=>{
         let extname = file.originalname
-        console.log(extname)
+        console.log("Extname",extname)
         let toarr = extname.split(".")
         console.log(toarr)
         let final = toarr[1]
         console.log(final)
         
        
-        cb(null,file.fieldname+`.${final}`)
+        cb(null,toarr[0]+`.${final}`)
 
 
     }
@@ -199,6 +199,16 @@ router.get('/gettask',authenticate.authenticate,(req,res,next)=>{
 
 })
 
+router.get('/data',authenticate.authenticate,(req,res,next)=>{
+    usercontroller.data(req)
+    .then(resp=>{
+        res.send(resp)
+    })
+    .catch(err=>{
+        res.status(500).send(Error)
+    })
+})
+
 
 router.post('/updatestatus',authenticate.authenticate,(req,res,next)=>{
 
@@ -226,11 +236,42 @@ router.post('/updateprofile',authenticate.authenticate,(req,res,next)=>{
         res.status(500).send(err)
     })
 
+})
 
 
-}
-)
+router.get('/taskcount',authenticate.authenticate,(req,res,next)=>{
 
+    usercontroller.gettaskcount(req)
+
+    .then(resp=>{
+        res.send(resp)
+    })
+
+    .catch(err=>{
+        res.status(500).send(err)
+
+    })
+
+
+
+})
+
+
+
+router.delete('/deletemember/:id',authenticate.authenticate,(req,res,next)=>{
+
+    usercontroller.deletemember(req)
+
+    .then(resp=>{
+        res.send(resp)
+    })
+
+    .catch(err=>{
+        res.status(500).send(err)
+    })
+
+
+})
 
 
 module.exports = router

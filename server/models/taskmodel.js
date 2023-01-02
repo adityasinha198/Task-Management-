@@ -4,19 +4,18 @@ const {ObjectId} = Schema
 
 const taskschema = new mongoose.Schema({
 
-    project:{
-        type:ObjectId
-    },
+  
     taskname:{ 
         type:String
 
     },
     assignedto:{
-        type:ObjectId
+        type:String
     },
     assignedby:{
-        type:ObjectId
+        type:String
     },
+  
     assigndate:{
         type:Date
     },
@@ -29,7 +28,7 @@ const taskschema = new mongoose.Schema({
     },
     status:{
         type:String,
-        default:'Pending'
+        default:'pending'
         
     }
     

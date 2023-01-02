@@ -1,8 +1,8 @@
 const mongoose = require('mongoose')
 const user = require('../models/usermodel')
 const usermodel = mongoose.model('User')
-const project = require('../models/projectmodel')
-const projectmodel = mongoose.model("Project")
+// const project = require('../models/projectmodel')
+// const projectmodel = mongoose.model("Project")
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
 const mailer = require('../mailer/mail')
@@ -14,6 +14,8 @@ const {parse} = require('csv-parse')
 const task = require('../models/taskmodel')
 const taskmodel = mongoose.model('Task')
 const moment = require('moment')
+const invite = require('../models/invitemodels')
+const invitemodel = mongoose.model('Invite')
 
 
 class usercontroller{
@@ -51,6 +53,7 @@ class usercontroller{
             user.email = req.body.email
             user.password = encrypted
             user.contactno = req.body.number
+            user.role = req.body.role
          
 
             const info = await user.save()
@@ -308,17 +311,58 @@ class usercontroller{
     
         try{
 
-        const projectid = req.body.projectid
+
+            console.log("Invite")
+
+           
+
+
+            const invite = await invitemodel.findOne({email:req.body.email})
+
+            if(invite){
+
+               return { 
+                status:402,
+                success:false,
+                message:"Member Already invited",
+                data:invite
+               }
+
+               }
+
+            
+
+
+            else{
+
+
+            console.log("Hello")
+            const invite = new invitemodel()
+
+            invite.email = req.body.email
+
+            await invite.save()
+            .then(resp=>{
+                console.log(resp)
+            })
+
+            .catch(err=>{
+                console.log(err)
+            
+            })
+            
+
+        // const projectid = req.body.projectid
 
         let data = {
             message:"Invitation Link",
             email:req.body.email,
-            url:`http://localhost:8000/user/signup?projectId=${projectid}`
+            url:`http://192.168.29.179:3000/auth/signup/${req.body.role}`
         
             }
 
             const html = `<body><b>Click below to accept invite</b><br>
-            <a href="${data.url}">Invitation</a>
+            <a href="${data.url}">http://192.168.29.179:3000/auth/signup/${req.body.role}</a>
             </body>`
 
             const success =  mailer.maling(data,html)
@@ -332,6 +376,9 @@ class usercontroller{
 
             }
 
+
+        }
+
         }
         catch(err){
             console.log(err)
@@ -341,20 +388,9 @@ class usercontroller{
         }
 
 
-    async getaddsignup(req){
+   
 
-        console.log("Inside get signup")
-
-        console.log(req.query.projectId)
-
-        return {
-            message:"Signup Page opened",
-            status:200,
-            succes:true
-        }
-
-
-    }
+    
 
     async getprojects(req){
 
@@ -420,9 +456,26 @@ class usercontroller{
 async assigntask(req){
    
 try{
+
+
+    console.log("FIle",req.file)
+
+    if(req.file==undefined){
+
+
+        return{
+            succes:false,
+            status:400,
+            message:"Task not assigned"
+        }
+    }
+
+    let filename = req.file.originalname
+
+    
 let array = []
 
-fs.createReadStream("./uploads/test.csv")
+fs.createReadStream(`./uploads/${filename}`)
   .pipe(parse({ delimiter: ",", from_line: 2 }))
   .on("data", async function (row) {
 
@@ -430,22 +483,37 @@ fs.createReadStream("./uploads/test.csv")
 
     })
   .on("end", async function () {
-    console.log(array)
+    // console.log(array)
     console.log("length",array.length)
 
     for(let i =0;i<array.length;i++){
         console.log("Done")
         console.log("i value",i)
-        let task = await new taskmodel()
+       
+
+        if(array[i][2]&&array[i][3]&&array[i][4]&&array[i][5]&&array[i][6]&&array[i][7]){
+
+            let task = await new taskmodel()
+
+            const x = new Date(array[i][5])
+            const y = new Date(array[i][6])
+            console.log("Date1",x)
+            console.log('Datw2',y)
         
-        task.project = new ObjectId(array[i][1])
+
+        
+        
+        // task.project = new ObjectId(array[i][1])
         task.taskname = array[i][2]
         task.assignedto = new ObjectId(array[i][3])
-        task.assignedby = new ObjectId(array[i][4])
+        task.assignedby = array[i][4]
         task.assignedate= new Date(array[i][5])
         task.startdate = new Date(array[i][6])
         task.enddate  = new Date(array[i][7])
-        task.status = array[i][8]
+        if(x<y){
+            task.status = "upcoming"
+        }
+       
        
 
         await task.save()
@@ -455,10 +523,22 @@ fs.createReadStream("./uploads/test.csv")
 
         .catch(err=>{
             console.log(err)
+
+            return{
+                    message:"Some problem",
+                    succes:false,
+                    status:400
+                  
+            }
         })
+
+    }
+    
+
+
     }
 
-    console.log("finished", array);
+    // console.log("finished", array);
 
 
     })
@@ -495,11 +575,15 @@ async gettask(req){
     try{
 
         console.log(req.userid)
-        console.log(req.query.projectId)
+        // console.log(req.query.projectId)
 
-        let task = await taskmodel.find({assignedto:req.userid,project:req.query.projectId})
-        console.log(task)
+        let user= await usermodel.findOne({assignedto:req.userid})
 
+        if(user){
+
+        let task = await usermodel.find({assignedto:user.email})
+
+        
 
         return {
 
@@ -510,6 +594,16 @@ async gettask(req){
 
         }
 
+        }
+
+
+
+
+        
+        console.log(task)
+
+
+        
     }
     catch(err){
         console.log(err)
@@ -602,22 +696,105 @@ async updateprofile(req){
 
         try{
 
-           let pending = await projectmodel.aggregate(
+            console.log("Inside this")
+
+            console.log(req.userid)
+
+          
+
+            
+
+            let pending = await taskmodel.aggregate(
                 [
                     {
                     $match: {
                         
-                        isDeleted:false,assignedto:ObjectId(req.userid),status:'Pending'
+                        assignedto:ObjectId(req.userid),status:"pending"
                     }
                     },
                     {
-                    $count: "Pending"
+                        $count:"pending"
                     }
                 ]
             ) 
 
 
-            console.log("Pending")
+            let completed = await taskmodel.aggregate(
+                [
+                    {
+                    $match: {
+                        
+                        assignedto:ObjectId(req.userid),status:"completed"
+                    }
+                    },
+                    {
+                        $count:"completed"
+                    }
+                ]
+            ) 
+
+
+            let active = await taskmodel.aggregate(
+                [
+                    {
+                    $match: {
+                        
+                        assignedto:ObjectId(req.userid),status:"active",
+                    }
+                    },
+                    {
+                        $count:"active"
+                    }
+                ]
+            ) 
+
+
+            let upcoming = await taskmodel.aggregate(
+                [
+                    {
+                    $match: {
+                        
+                        assignedto:ObjectId(req.userid),status:"upcoming",
+                    }
+                    },
+                    {
+                        $count:"upcoming"
+                    }
+                ]
+            ) 
+
+
+            console.log("Pending",pending)
+            console.log("completed",completed)
+            console.log("upcoming",upcoming)
+            console.log("active",active)
+
+
+            
+
+
+
+            return {
+
+                status:200,
+                succes:true,
+                data:{
+                    pending:pending,
+                    completed:completed,
+                    upcoming:upcoming,
+                    active:active
+                }
+            }
+
+
+
+
+            
+
+        
+
+
+            
 
            
         }
@@ -629,6 +806,78 @@ async updateprofile(req){
 
 
     }
+
+
+
+    async data(req){
+        try{
+            let user = await usermodel.findOne({_id:req.userid})
+            let name = user.name.split(" ")
+            if(user){
+                return {
+                    status:200,
+                    succes:true,
+                    message:"User Detais",
+                    user,
+                    name
+                }
+            }
+            else{
+                return{
+                    status:400,
+                    success:false,
+                    message:"No data found"
+                }
+            }
+        }
+        catch(err){
+            console.log(err)
+        }
+    }
+
+
+    async deletemember(req){
+
+    console.log(req.params.id)
+
+    try{
+
+    let del = await usermodel.deleteOne({_id:req.params.id})
+
+    console.log(del)
+
+    let deltask = await usermodel.deleteOne({assignedto:req.params.id}) 
+    console.log(deltask)
+
+    if(del && deltask){
+        return {
+
+            succes:true,
+            status:200,
+            message:"Deleted successfully"
+        }
+    }
+
+    else{
+
+        return {
+            succes:false,
+            status:400,
+            message:"Not deleted"
+        }
+    }
+
+    }
+    catch(err){
+
+
+     console.log(err)
+    }
+
+
+
+}
+
 
    
 }

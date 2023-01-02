@@ -14,6 +14,6 @@ exports.authenticate = async(req,res,next)=>{
     console.log(decode)
     req.userid = decode.uid
 
-    next()
+    next()                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              
 
 } 
