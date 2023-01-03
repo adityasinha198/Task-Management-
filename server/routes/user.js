@@ -13,9 +13,9 @@ const storage = multer.diskStorage({
         console.log(toarr)
         let final = toarr[1]
         console.log(final)
-        
+            
        
-        cb(null,toarr[0]+`.${final}`)
+        cb(null,file.originalname+`.${final}`)
 
 
     }

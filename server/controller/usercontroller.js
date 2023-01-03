@@ -581,7 +581,7 @@ async gettask(req){
 
         if(user){
 
-        let task = await usermodel.find({assignedto:user.email})
+        let task = await taskmodel.find({assignedto:user.email})
 
         
 
